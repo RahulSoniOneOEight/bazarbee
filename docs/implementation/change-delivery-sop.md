@@ -160,6 +160,28 @@ local dev servers and batch deployment; do not fall back to per-edit full image 
   semantics.
 - Production release remains human-authorized.
 
+## 8a. UI iteration rule (added 2026-10-27)
+
+Small UI changes must not be shipped through an image build each. The BuildKart dashboard lives inside
+the Medusa image, so every text tweak cost roughly 8-12 minutes plus verification.
+
+Rules:
+
+1. **Iterate with the dev proxy.** Admin/Seller run through Vite HMR against staging; API paths are
+   proxied rather than baked to a different origin.
+2. **One image build per approved bundle.** Copy and layout changes are batched and reviewed before
+   the single release build.
+3. **Image only for what the proxy cannot exercise** - API routes, routing/redirects, middleware,
+   permissions, migrations, bundle semantics.
+4. **Smoke gate replaces manual clicking** after deploy:
+   login -> create -> save variant -> price -> review gates -> storefront API.
+5. Escape hatch for review only: build the dashboard bundle and `docker cp` it into the running
+   container (about 90 seconds). Never treat that as a release.
+
+Known traps to design around: the dashboard ships a prebuilt stylesheet (arbitrary utilities silently
+no-op), PowerShell text rewrites corrupt UTF-8, stale browser sessions invalidate manual QC, and
+"redaction" commands can print secrets. See `update-delivery-framework-v2.md` section 14.
+
 ## 9. Definition of done for a bundle
 
 - The declared lane and verification plan are satisfied.
